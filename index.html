@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus — Digital Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:   #080808;
+      --dark:    #0f0f0f;
+      --card:    #161616;
+      --border:  #242424;
+      --gold:    #c9a84c;
+      --gold-lt: #e2c97e;
+      --white:   #f5f0e8;
+      --muted:   #7a7a7a;
+      --font-display: 'Cormorant Garamond', serif;
+      --font-body:    'Outfit', sans-serif;
+      --nav-h: 72px;
+      --ease: cubic-bezier(0.76, 0, 0.24, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-weight: 400;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+      opacity: 0.3;
+    }
+
+    /* ── NAVBAR ── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(24px, 5vw, 72px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.4s, background 0.4s;
+    }
+    .nav.scrolled {
+      background: rgba(8,8,8,0.92);
+      border-color: var(--border);
+      backdrop-filter: blur(16px);
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--white);
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    .nav-logo span { color: var(--gold); }
+    .nav-logo:hover { color: var(--gold-lt); }
+
+    .nav-links {
+      display: flex; gap: 40px; list-style: none;
+      align-items: center;
+    }
+    .nav-links li {
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.3s;
+    }
+    .nav-links li::after {
+      content: '';
+      position: absolute; bottom: -4px; left: 0;
+      width: 0; height: 1px;
+      background: var(--gold);
+      transition: width 0.4s var(--ease);
+    }
+    .nav-links li:hover, .nav-links li.active { color: var(--white); }
+    .nav-links li:hover::after, .nav-links li.active::after { width: 100%; }
+
+    .nav-cta {
+      padding: 9px 24px;
+      border: 1px solid var(--gold);
+      color: var(--gold) !important;
+      border-radius: 2px;
+      font-size: 0.75rem !important;
+      letter-spacing: 0.1em;
+      transition: background 0.3s, color 0.3s !important;
+    }
+    .nav-cta:hover {
+      background: var(--gold) !important;
+      color: var(--black) !important;
+    }
+    .nav-cta::after { display: none !important; }
+
+    /* ── HAMBURGER ── */
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; padding: 4px;
+    }
+    .hamburger span {
+      display: block; width: 24px; height: 1.5px;
+      background: var(--white);
+      transition: transform 0.3s, opacity 0.3s;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    /* ── MOBILE MENU ── */
+    .mobile-menu {
+      display: none;
+      position: fixed; inset: 0; z-index: 90;
+      background: var(--black);
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 48px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.4s;
+    }
+    .mobile-menu.open { opacity: 1; pointer-events: all; }
+    .mobile-menu li {
+      list-style: none;
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      font-weight: 300;
+      color: var(--white);
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    .mobile-menu li:hover { color: var(--gold); }
+
+    /* ── PAGE TRANSITIONS ── */
+    .page-wrapper {
+      position: relative;
+    }
+    .page-enter {
+      animation: pageIn 0.7s var(--ease) forwards;
+    }
+    .page-exit {
+      animation: pageOut 0.4s var(--ease) forwards;
+    }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pageOut {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-20px); }
+    }
+
+    /* ── SECTION COMMONS ── */
+    section { position: relative; z-index: 1; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 clamp(24px, 5vw, 72px); }
+    .section-label {
+      font-size: 0.7rem; font-weight: 500;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-label::before {
+      content: ''; display: block;
+      width: 32px; height: 1px; background: var(--gold);
+    }
+
+    /* ══════════════════════════════════════════
+       HOME PAGE
+    ══════════════════════════════════════════ */
+    .hero {
+      min-height: 100vh;
+      display: grid; place-items: center;
+      padding-top: var(--nav-h);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(201,168,76,0.07) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 70% at 20% 80%, rgba(201,168,76,0.04) 0%, transparent 60%);
+    }
+    .hero-grid-lines {
+      position: absolute; inset: 0; z-index: 0; opacity: 0.04;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 80px 80px;
+    }
+
+    .hero-inner {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 clamp(24px, 5vw, 72px);
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+      align-items: center; width: 100%;
+    }
+
+    .hero-content { }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.72rem; font-weight: 500; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 28px;
+      opacity: 0; animation: fadeUp 0.8s 0.2s var(--ease) forwards;
+    }
+    .hero-eyebrow::before {
+      content: ''; display: block; width: 20px; height: 1px; background: var(--gold);
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(3.2rem, 6vw, 5.5rem);
+      font-weight: 300;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin-bottom: 28px;
+      opacity: 0; animation: fadeUp 0.9s 0.4s var(--ease) forwards;
+    }
+    .hero-title em {
+      font-style: italic; color: var(--gold-lt);
+      font-weight: 300;
+    }
+
+    .hero-subtitle {
+      font-size: 1rem; color: var(--muted); line-height: 1.75;
+      max-width: 460px; margin-bottom: 48px;
+      opacity: 0; animation: fadeUp 0.9s 0.6s var(--ease) forwards;
+    }
+
+    .hero-actions {
+      display: flex; gap: 20px; align-items: center;
+      flex-wrap: wrap;
+      opacity: 0; animation: fadeUp 0.9s 0.8s var(--ease) forwards;
+    }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 36px;
+      background: var(--gold); color: var(--black);
+      font-family: var(--font-body); font-size: 0.8rem;
+      font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      border: none; border-radius: 2px; cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .btn-primary:hover { background: var(--gold-lt); transform: translateY(-2px); }
+
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 28px;
+      background: transparent; color: var(--white);
+      font-family: var(--font-body); font-size: 0.8rem;
+      font-weight: 500; letter-spacing: 0.06em;
+      border: 1px solid var(--border); border-radius: 2px; cursor: pointer;
+      transition: border-color 0.3s, color 0.3s, transform 0.2s;
+    }
+    .btn-ghost:hover {
+      border-color: var(--gold); color: var(--gold);
+      transform: translateY(-2px);
+    }
+
+    /* Hero Visual */
+    .hero-visual {
+      display: flex; justify-content: center; align-items: center;
+      opacity: 0; animation: fadeIn 1.2s 0.5s var(--ease) forwards;
+    }
+    .hero-card-stack { position: relative; width: 360px; height: 420px; }
+    .h-card {
+      position: absolute;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .h-card-1 {
+      width: 280px; height: 340px; top: 0; right: 0;
+      background: linear-gradient(135deg, #161616 0%, #111111 100%);
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .h-card-2 {
+      width: 200px; height: 120px; bottom: 40px; left: 0;
+      background: linear-gradient(135deg, #1a1a1a, #111);
+      animation: floatCard 4s ease-in-out infinite;
+    }
+    .h-card-3 {
+      width: 160px; height: 80px; top: 80px; left: 20px;
+      background: var(--gold);
+      animation: floatCard2 5s ease-in-out infinite;
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px;
+    }
+    @keyframes floatCard  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @keyframes floatCard2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+
+    .hc-label {
+      font-size: 0.65rem; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .hc-number {
+      font-family: var(--font-display); font-size: 3rem;
+      font-weight: 600; color: var(--white);
+      line-height: 1;
+    }
+    .hc-number span { font-size: 1.2rem; color: var(--gold); }
+    .hc-bar {
+      height: 4px; background: var(--border); border-radius: 2px;
+      overflow: hidden; margin-top: 8px;
+    }
+    .hc-bar-fill {
+      height: 100%; background: var(--gold);
+      animation: barGrow 2s 1.5s ease forwards;
+      width: 0;
+    }
+    @keyframes barGrow { to { width: var(--w); } }
+    .hc-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hc-tag {
+      padding: 3px 10px; font-size: 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 20px; color: var(--muted);
+    }
+    .hc3-icon { font-size: 1.4rem; }
+    .hc3-text {
+      font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.06em; color: var(--black);
+    }
+
+    /* Stats bar */
+    .hero-stats {
+      display: flex; gap: clamp(32px, 4vw, 64px);
+      padding: 32px 0; border-top: 1px solid var(--border);
+      margin-top: 64px;
+      opacity: 0; animation: fadeUp 0.9s 1s var(--ease) forwards;
+    }
+    .stat-item { }
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      font-weight: 600; color: var(--white);
+      line-height: 1;
+    }
+    .stat-num span { color: var(--gold); }
+    .stat-label {
+      font-size: 0.72rem; color: var(--muted);
+      letter-spacing: 0.06em; margin-top: 6px;
+    }
+
+    /* Services */
+    .services { padding: clamp(80px, 10vw, 140px) 0; }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); gap: 1px;
+      border: 1px solid var(--border);
+      border-radius: 4px; overflow: hidden;
+      margin-top: 64px;
+    }
+    .service-card {
+      padding: clamp(28px, 3vw, 44px);
+      background: var(--card);
+      position: relative; overflow: hidden;
+      cursor: default;
+      transition: background 0.4s;
+    }
+    .service-card::before {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+      background: var(--gold);
+      transform: scaleX(0); transform-origin: left;
+      transition: transform 0.5s var(--ease);
+    }
+    .service-card:hover { background: #1a1a1a; }
+    .service-card:hover::before { transform: scaleX(1); }
+
+    .sc-num {
+      font-family: var(--font-display); font-size: 4rem;
+      font-weight: 700; color: var(--border); line-height: 1;
+      margin-bottom: 20px; user-select: none;
+    }
+    .sc-title {
+      font-family: var(--font-display); font-size: 1.4rem;
+      font-weight: 600; margin-bottom: 12px; line-height: 1.2;
+    }
+    .sc-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.7; }
+
+    /* Marquee */
+    .marquee-section {
+      padding: 28px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      overflow: hidden; position: relative; z-index: 1;
+    }
+    .marquee-track {
+      display: flex; gap: 0;
+      animation: marquee 24s linear infinite;
+      width: max-content;
+    }
+    .marquee-item {
+      display: flex; align-items: center; gap: 28px;
+      white-space: nowrap;
+      font-family: var(--font-display); font-size: 1rem;
+      font-weight: 300; font-style: italic;
+      color: var(--muted); padding: 0 28px;
+      letter-spacing: 0.04em;
+    }
+    .marquee-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+    @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    /* CTA band */
+    .cta-band {
+      padding: clamp(64px, 8vw, 120px) 0;
+      background: linear-gradient(135deg, #111 0%, #0d0d0d 100%);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .cta-band h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 300; margin-bottom: 16px;
+    }
+    .cta-band h2 em { font-style: italic; color: var(--gold-lt); }
+    .cta-band p { font-size: 1rem; color: var(--muted); margin-bottom: 40px; }
+
+    /* ══════════════════════════════════════════
+       ABOUT PAGE
+    ══════════════════════════════════════════ */
+    .page-hero {
+      padding: calc(var(--nav-h) + 80px) 0 80px;
+      position: relative; overflow: hidden;
+    }
+    .page-hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 70% 80% at 80% 50%, rgba(201,168,76,0.06) 0%, transparent 60%);
+    }
+    .page-hero-content { position: relative; z-index: 1; max-width: 720px; }
+    .page-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 7vw, 6rem);
+      font-weight: 300; line-height: 1.0;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    .page-title em { font-style: italic; color: var(--gold); }
+    .page-subtitle {
+      font-size: 1.05rem; color: var(--muted); line-height: 1.75; max-width: 520px;
+    }
+
+    /* About Story */
+    .about-story { padding: clamp(60px, 8vw, 120px) 0; }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(40px, 6vw, 100px); align-items: center; }
+    .about-text h3 {
+      font-family: var(--font-display); font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 400; line-height: 1.2; margin-bottom: 24px;
+    }
+    .about-text h3 em { color: var(--gold); font-style: italic; }
+    .about-text p { font-size: 0.95rem; color: var(--muted); line-height: 1.85; margin-bottom: 20px; }
+
+    .about-visual {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .av-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 28px 24px;
+    }
+    .av-card:nth-child(2) { transform: translateY(20px); }
+    .av-card:nth-child(4) { transform: translateY(20px); }
+    .av-num {
+      font-family: var(--font-display); font-size: 2.2rem;
+      font-weight: 600; color: var(--gold);
+    }
+    .av-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    /* Values */
+    .values { padding: clamp(60px, 8vw, 120px) 0; background: var(--dark); }
+    .values-header { text-align: center; margin-bottom: 64px; }
+    .values-header h2 {
+      font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 300; margin-top: 16px;
+    }
+    .values-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .value-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: clamp(24px, 3vw, 36px);
+      display: flex; gap: 20px; align-items: flex-start;
+      transition: border-color 0.3s;
+    }
+    .value-card:hover { border-color: var(--gold); }
+    .value-icon {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: rgba(201,168,76,0.1); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .value-card h4 {
+      font-family: var(--font-display); font-size: 1.2rem;
+      font-weight: 600; margin-bottom: 8px;
+    }
+    .value-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.7; }
+
+    /* Team */
+    .team { padding: clamp(60px, 8vw, 120px) 0; }
+    .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; }
+    .team-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden;
+      transition: transform 0.4s var(--ease), border-color 0.3s;
+    }
+    .team-card:hover { transform: translateY(-8px); border-color: var(--gold); }
+    .team-avatar {
+      height: 220px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .team-avatar-bg { position: absolute; inset: 0; }
+    .team-avatar-letter {
+      position: relative; z-index: 1;
+      font-family: var(--font-display); font-size: 5rem;
+      font-weight: 700; color: rgba(255,255,255,0.08);
+    }
+    .team-info { padding: 24px; }
+    .team-name {
+      font-family: var(--font-display); font-size: 1.2rem;
+      font-weight: 600; margin-bottom: 4px;
+    }
+    .team-role { font-size: 0.75rem; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; }
+    .team-bio { font-size: 0.82rem; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+
+    /* ══════════════════════════════════════════
+       CONTACT PAGE
+    ══════════════════════════════════════════ */
+    .contact-section { padding: clamp(60px, 8vw, 120px) 0; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: clamp(40px, 7vw, 100px); align-items: start; }
+
+    .contact-info h3 {
+      font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 400; line-height: 1.2; margin-bottom: 20px;
+    }
+    .contact-info p { font-size: 0.9rem; color: var(--muted); line-height: 1.8; margin-bottom: 40px; }
+
+    .contact-detail {
+      display: flex; gap: 16px; align-items: center;
+      margin-bottom: 24px; padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .contact-detail:last-child { border-bottom: none; }
+    .cd-icon {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: rgba(201,168,76,0.08); border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .cd-text label { display: block; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+    .cd-text span { font-size: 0.9rem; }
+
+    /* Form */
+    .contact-form {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: clamp(28px, 4vw, 48px);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block; font-size: 0.72rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%; padding: 12px 16px;
+      background: var(--black); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--white);
+      font-family: var(--font-body); font-size: 0.9rem;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      outline: none; resize: vertical;
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: #3a3a3a; }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+    }
+    .form-group select { appearance: none; cursor: pointer; }
+    .form-group textarea { min-height: 120px; }
+
+    .form-error { font-size: 0.75rem; color: #e05c5c; margin-top: 5px; }
+    .form-success {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px; background: rgba(201,168,76,0.08);
+      border: 1px solid rgba(201,168,76,0.3); border-radius: 6px;
+      margin-bottom: 20px; font-size: 0.88rem; color: var(--gold);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      position: relative; z-index: 1;
+      padding: 64px 0 40px;
+      border-top: 1px solid var(--border);
+    }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+    .footer-brand h3 {
+      font-family: var(--font-display); font-size: 1.5rem;
+      font-weight: 600; margin-bottom: 12px;
+    }
+    .footer-brand h3 span { color: var(--gold); }
+    .footer-brand p { font-size: 0.85rem; color: var(--muted); line-height: 1.7; max-width: 280px; }
+    .footer-col h4 {
+      font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 20px;
+    }
+    .footer-col ul { list-style: none; }
+    .footer-col ul li {
+      font-size: 0.85rem; color: var(--muted);
+      margin-bottom: 10px; cursor: pointer;
+      transition: color 0.3s;
+    }
+    .footer-col ul li:hover { color: var(--white); }
+    .footer-bottom {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 32px; border-top: 1px solid var(--border);
+      font-size: 0.78rem; color: var(--muted);
+    }
+    .footer-socials { display: flex; gap: 16px; }
+    .social-btn {
+      width: 36px; height: 36px; border-radius: 4px;
+      border: 1px solid var(--border); display: flex;
+      align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.75rem; color: var(--muted);
+      transition: border-color 0.3s, color 0.3s;
+    }
+    .social-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    .reveal {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .hero-inner { grid-template-columns: 1fr; text-align: center; gap: 48px; }
+      .hero-subtitle { max-width: 100%; }
+      .hero-actions { justify-content: center; }
+      .hero-stats { justify-content: center; }
+      .hero-visual { order: -1; }
+      .hero-card-stack { width: 280px; height: 320px; }
+      .h-card-1 { width: 220px; height: 280px; }
+      .h-card-2 { width: 160px; height: 100px; }
+      .h-card-3 { width: 130px; height: 68px; }
+      .services-grid { grid-template-columns: 1fr; }
+      .about-grid { grid-template-columns: 1fr; }
+      .values-grid { grid-template-columns: 1fr; }
+      .team-grid { grid-template-columns: 1fr 1fr; }
+      .contact-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; }
+      .mobile-menu { display: flex; }
+    }
+    @media (max-width: 540px) {
+      .team-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+      .about-visual { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useContext, createContext, useRef, useCallback } = React;
+
+/* ─── CONTEXT ─── */
+const AppContext = createContext();
+const AppProvider = ({ children }) => {
+  const [currentPage, setCurrentPage] = useState('home');
+  const [prevPage, setPrevPage] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [formData, setFormData] = useState({ name:'', email:'', phone:'', service:'', message:'' });
+  const [formSubmitted, setFormSubmitted] = useState(false);
+
+  const navigate = useCallback((page) => {
+    if (page === currentPage) return;
+    setMenuOpen(false);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setPrevPage(currentPage);
+      setCurrentPage(page);
+      setIsTransitioning(false);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }, 350);
+  }, [currentPage]);
+
+  return (
+    <AppContext.Provider value={{
+      currentPage, navigate, prevPage,
+      isTransitioning, menuOpen, setMenuOpen,
+      formData, setFormData, formSubmitted, setFormSubmitted
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+/* ─── SCROLL REVEAL HOOK ─── */
+const useReveal = () => {
+  useEffect(() => {
+    const els = document.querySelectorAll('.reveal');
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }});
+    }, { threshold: 0.12 });
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  });
+};
+
+/* ─── SCROLL NAVBAR ─── */
+const useScrollNav = () => {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', fn);
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+  return scrolled;
+};
+
+/* ─── NAVBAR ─── */
+const Navbar = () => {
+  const { currentPage, navigate, menuOpen, setMenuOpen } = useContext(AppContext);
+  const scrolled = useScrollNav();
+  const links = [
+    { id: 'home', label: 'Home' },
+    { id: 'about', label: 'About' },
+    { id: 'contact', label: 'Contact' },
+  ];
+  return (
+    <>
+      <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
+        <div className="nav-logo" onClick={() => navigate('home')}>
+          Nex<span>us</span>
+        </div>
+        <ul className="nav-links">
+          {links.map(l => (
+            <li key={l.id} className={`${currentPage===l.id?'active':''} ${l.id==='contact'?'nav-cta':''}`}
+              onClick={() => navigate(l.id)}>{l.label}</li>
+          ))}
+        </ul>
+        <div className={`hamburger${menuOpen?' open':''}`} onClick={() => setMenuOpen(o => !o)}>
+          <span/><span/><span/>
+        </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      <div className={`mobile-menu${menuOpen?' open':''}`}>
+        {links.map(l => (
+          <li key={l.id} onClick={() => navigate(l.id)}>{l.label}</li>
+        ))}
+      </div>
+    </>
+  );
+};
+
+/* ─── FOOTER ─── */
+const Footer = () => {
+  const { navigate } = useContext(AppContext);
+  return (
+    <footer className="footer">
+      <div className="container">
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <h3>Nex<span>us</span></h3>
+            <p>Crafting digital experiences that blend precision design with purposeful technology.</p>
+          </div>
+          <div className="footer-col">
+            <h4>Navigation</h4>
+            <ul>
+              <li onClick={() => navigate('home')}>Home</li>
+              <li onClick={() => navigate('about')}>About</li>
+              <li onClick={() => navigate('contact')}>Contact</li>
+            </ul>
+          </div>
+          <div className="footer-col">
+            <h4>Services</h4>
+            <ul>
+              <li>Brand Design</li>
+              <li>Web Development</li>
+              <li>Digital Strategy</li>
+              <li>Motion & Animation</li>
+            </ul>
+          </div>
+          <div className="footer-col">
+            <h4>Connect</h4>
+            <ul>
+              <li>LinkedIn</li>
+              <li>Twitter / X</li>
+              <li>Dribbble</li>
+              <li>GitHub</li>
+            </ul>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <span>© 2025 Nexus Digital Studio. All rights reserved.</span>
+          <div className="footer-socials">
+            {['in','tw','gh','dr'].map(s => (
+              <div key={s} className="social-btn">{s}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+/* ════════════════════════════════════════════
+   HOME PAGE
+════════════════════════════════════════════ */
+const HomePage = () => {
+  useReveal();
+  const { navigate } = useContext(AppContext);
+
+  const services = [
+    { n:'01', title:'Brand & Identity', desc:'We forge identities that resonate — visual systems built on strategy, refined to perfection.' },
+    { n:'02', title:'Web Development', desc:'High-performance interfaces crafted with modern frameworks and obsessive attention to craft.' },
+    { n:'03', title:'Digital Strategy', desc:'Data-informed decisions fused with creative intelligence to drive meaningful growth.' },
+    { n:'04', title:'Motion Design', desc:'Animations that breathe life into interfaces, guiding users through delightful experiences.' },
+    { n:'05', title:'UX Research', desc:'Deep user empathy translated into intuitive journeys that convert and retain.' },
+    { n:'06', title:'Content Systems', desc:'Scalable content architecture that speaks with clarity across every channel and context.' },
+  ];
+
+  const marqueeItems = ['Brand Identity','Web Development','Digital Strategy','Motion Design','UX Research','Content Systems','Performance Optimization','Creative Direction'];
+
+  return (
+    <div>
+      {/* Hero */}
+      <section className="hero">
+        <div className="hero-bg"/>
+        <div className="hero-grid-lines"/>
+        <div className="hero-inner">
+          <div className="hero-content">
+            <div className="hero-eyebrow">Award-winning Digital Studio</div>
+            <h1 className="hero-title">
+              We craft<br/><em>digital futures</em><br/>that endure.
+            </h1>
+            <p className="hero-subtitle">
+              Nexus is a full-spectrum creative studio merging bold design thinking with precision engineering to build brands and experiences that stand apart.
+            </p>
+            <div className="hero-actions">
+              <button className="btn-primary" onClick={() => navigate('contact')}>
+                Start a Project <span>→</span>
+              </button>
+              <button className="btn-ghost" onClick={() => navigate('about')}>
+                Our Story
+              </button>
+            </div>
+            <div className="hero-stats">
+              <div className="stat-item">
+                <div className="stat-num">180<span>+</span></div>
+                <div className="stat-label">Projects Delivered</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-num">96<span>%</span></div>
+                <div className="stat-label">Client Satisfaction</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-num">8<span>yr</span></div>
+                <div className="stat-label">In the industry</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="hero-visual">
+            <div className="hero-card-stack">
+              <div className="h-card h-card-1">
+                <div>
+                  <div className="hc-label">Project ROI</div>
+                  <div className="hc-num">4.2<span>×</span></div>
+                  <div className="hc-bar"><div className="hc-bar-fill" style={{'--w':'75%'}}/></div>
+                </div>
+                <div>
+                  <div className="hc-label">Recent clients</div>
+                  <div className="hc-tags">
+                    {['Fintech','SaaS','E-comm','Health'].map(t=><span key={t} className="hc-tag">{t}</span>)}
+                  </div>
+                </div>
+              </div>
+              <div className="h-card h-card-3">
+                <span className="hc3-icon">✦</span>
+                <span className="hc3-text">Award 2024</span>
+              </div>
+              <div className="h-card h-card-2">
+                <div className="hc-label">Active Projects</div>
+                <div style={{fontFamily:'var(--font-display)',fontSize:'2rem',fontWeight:600,marginTop:'8px'}}>24</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Marquee */}
+      <div className="marquee-section">
+        <div className="marquee-track">
+          {[...marqueeItems,...marqueeItems].map((item,i) => (
+            <div key={i} className="marquee-item">
+              <span className="marquee-dot"/>
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Services */}
+      <section className="services">
+        <div className="container">
+          <div className="reveal">
+            <div className="section-label">What We Do</div>
+            <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(2rem,4vw,3.2rem)',fontWeight:300,maxWidth:'600px',lineHeight:1.15}}>
+              A studio built on <em style={{fontStyle:'italic',color:'var(--gold-lt)'}}>craft,<br/>curiosity, and commitment.</em>
+            </h2>
+          </div>
+          <div className="services-grid" style={{marginTop:'64px'}}>
+            {services.map((s,i) => (
+              <div key={i} className="service-card reveal" style={{transitionDelay:`${i*0.08}s`}}>
+                <div className="sc-num">{s.n}</div>
+                <div className="sc-title">{s.title}</div>
+                <div className="sc-desc">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Band */}
+      <div className="cta-band">
+        <div className="container">
+          <div className="reveal">
+            <h2>Ready to build something <em>remarkable?</em></h2>
+            <p>Let's talk about your vision. No commitments, just a conversation.</p>
+            <button className="btn-primary" onClick={() => navigate('contact')}>
+              Get in Touch →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ════════════════════════════════════════════
+   ABOUT PAGE
+════════════════════════════════════════════ */
+const AboutPage = () => {
+  useReveal();
+  const { navigate } = useContext(AppContext);
+
+  const values = [
+    { icon:'✦', title:'Craft Over Convenience', text:'We resist shortcuts. Every pixel, every interaction, every line of code is considered with intent.' },
+    { icon:'◈', title:'Transparency Always', text:'Clear communication, honest timelines, and genuine partnerships — no hidden agendas.' },
+    { icon:'⬡', title:'Continuous Curiosity', text:'We invest in learning because the best ideas come from minds that never stop exploring.' },
+    { icon:'◇', title:'Client Success First', text:'Your wins are our wins. We measure our value by the outcomes we create together.' },
+  ];
+
+  const team = [
+    { name:'Arjun Mehta', role:'Creative Director', bio:'15 years shaping brands for Fortune 500 clients. Obsessed with the space between art and function.', bg:'linear-gradient(135deg,#1a1208,#2d1f0a)', letter:'A' },
+    { name:'Sofia Laurent', role:'Lead Engineer', bio:'Full-stack architect with a frontend soul. Builds systems that are as elegant as they are robust.', bg:'linear-gradient(135deg,#0a1a1a,#0a2020)', letter:'S' },
+    { name:'Kai Nakamura', role:'Strategy Lead', bio:'Former consultant turned creative strategist. Transforms ambiguity into clear, actionable direction.', bg:'linear-gradient(135deg,#0d0d1f,#0a0a2a)', letter:'K' },
+  ];
+
+  return (
+    <div>
+      <section className="page-hero">
+        <div className="page-hero-bg"/>
+        <div className="container">
+          <div className="page-hero-content">
+            <div className="section-label reveal">Our Story</div>
+            <h1 className="page-title reveal">We are<br/><em>Nexus</em></h1>
+            <p className="page-subtitle reveal">
+              A collective of designers, engineers, and strategists united by the belief that great digital work requires equal parts creativity, technical excellence, and genuine human connection.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Story */}
+      <section className="about-story">
+        <div className="container">
+          <div className="about-grid">
+            <div className="about-text reveal">
+              <h3>Built to create work that <em>actually matters</em></h3>
+              <p>Founded in 2016, Nexus began as a two-person design studio in a small apartment. We had one rule: never compromise on quality. Eight years later, that same obsession drives everything we do.</p>
+              <p>We've grown to a team of 24 across three cities, but we've kept the spirit of a small studio — nimble, opinionated, deeply invested in every project. We work with startups finding their voice and enterprises reinventing theirs.</p>
+              <p>Our process is collaborative by design. We don't disappear into a black box — we think out loud, invite feedback early, and treat every client as a creative partner.</p>
+              <button className="btn-ghost" style={{marginTop:'12px'}} onClick={() => navigate('contact')}>Work With Us →</button>
+            </div>
+            <div className="about-visual reveal" style={{transitionDelay:'0.2s'}}>
+              {[
+                {n:'2016', l:'Year Founded'},
+                {n:'24', l:'Team Members'},
+                {n:'180+', l:'Projects Completed'},
+                {n:'3', l:'Offices Worldwide'},
+              ].map((c,i) => (
+                <div key={i} className="av-card">
+                  <div className="av-num">{c.n}</div>
+                  <div className="av-label">{c.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section className="values">
+        <div className="container">
+          <div className="values-header reveal">
+            <div className="section-label" style={{justifyContent:'center'}}>Our Principles</div>
+            <h2>What drives everything<br/>we create</h2>
+          </div>
+          <div className="values-grid">
+            {values.map((v,i) => (
+              <div key={i} className="value-card reveal" style={{transitionDelay:`${i*0.1}s`}}>
+                <div className="value-icon">{v.icon}</div>
+                <div>
+                  <h4>{v.title}</h4>
+                  <p>{v.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Team */}
+      <section className="team">
+        <div className="container">
+          <div className="reveal">
+            <div className="section-label">The People</div>
+            <h2 style={{fontFamily:'var(--font-display)',fontSize:'clamp(1.8rem,3vw,2.8rem)',fontWeight:300,marginTop:'12px'}}>
+              Talented humans,<br/><em style={{fontStyle:'italic',color:'var(--gold)'}}>extraordinary results.</em>
+            </h2>
+          </div>
+          <div className="team-grid">
+            {team.map((m,i) => (
+              <div key={i} className="team-card reveal" style={{transitionDelay:`${i*0.12}s`}}>
+                <div className="team-avatar">
+                  <div className="team-avatar-bg" style={{background:m.bg}}/>
+                  <div className="team-avatar-letter">{m.letter}</div>
+                </div>
+                <div className="team-info">
+                  <div className="team-name">{m.name}</div>
+                  <div className="team-role">{m.role}</div>
+                  <div className="team-bio">{m.bio}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+/* ════════════════════════════════════════════
+   CONTACT PAGE
+════════════════════════════════════════════ */
+const ContactPage = () => {
+  useReveal();
+  const { formData, setFormData, formSubmitted, setFormSubmitted } = useContext(AppContext);
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const e = {};
+    if (!formData.name.trim()) e.name = 'Full name is required.';
+    if (!formData.email.trim()) e.email = 'Email address is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Please enter a valid email.';
+    if (formData.phone && !/^\+?[\d\s\-\(\)]{7,}$/.test(formData.phone)) e.phone = 'Please enter a valid phone number.';
+    if (!formData.service) e.service = 'Please select a service.';
+    if (!formData.message.trim()) e.message = 'Message cannot be empty.';
+    else if (formData.message.trim().length < 20) e.message = 'Please provide more detail (at least 20 characters).';
+    return e;
+  };
+
+  const handleChange = (field, value) => {
+    setFormData(p => ({...p, [field]: value}));
+    if (errors[field]) setErrors(p => {const n={...p}; delete n[field]; return n;});
+  };
+
+  const handleSubmit = () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setFormSubmitted(true);
+    setFormData({ name:'', email:'', phone:'', service:'', message:'' });
+    setErrors({});
+  };
+
+  const details = [
+    { icon:'✉', label:'Email', val:'hello@nexusstudio.io' },
+    { icon:'📍', label:'Location', val:'Mumbai · New York · Berlin' },
+    { icon:'⏰', label:'Response Time', val:'Within 24 hours' },
+  ];
+
+  return (
+    <div>
+      <section className="page-hero">
+        <div className="page-hero-bg"/>
+        <div className="container">
+          <div className="page-hero-content">
+            <div className="section-label reveal">Let's Talk</div>
+            <h1 className="page-title reveal">Start your<br/><em>next chapter</em></h1>
+            <p className="page-subtitle reveal">
+              Whether you have a clear brief or a vague idea, we'd love to hear from you. Great projects start with honest conversations.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="contact-section">
+        <div className="container">
+          <div className="contact-grid">
+            {/* Info */}
+            <div className="reveal">
+              <h3>We're here to help<br/>you build something <em style={{fontStyle:'italic',color:'var(--gold)'}}>great.</em></h3>
+              <p>Fill in the form and our team will get back to you within one business day. We treat every inquiry with care, no matter the size.</p>
+              {details.map((d,i) => (
+                <div key={i} className="contact-detail">
+                  <div className="cd-icon">{d.icon}</div>
+                  <div className="cd-text">
+                    <label>{d.label}</label>
+                    <span>{d.val}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Form */}
+            <div className="contact-form reveal" style={{transitionDelay:'0.15s'}}>
+              {formSubmitted && (
+                <div className="form-success">
+                  ✦ &nbsp; Thank you! We'll be in touch within 24 hours.
+                </div>
+              )}
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Full Name *</label>
+                  <input type="text" placeholder="Your name"
+                    value={formData.name}
+                    onChange={e => handleChange('name', e.target.value)}
+                    onBlur={() => { if(!formData.name.trim()) setErrors(p => ({...p, name:'Full name is required.'})); }}
+                  />
+                  {errors.name && <div className="form-error">{errors.name}</div>}
+                </div>
+                <div className="form-group">
+                  <label>Email Address *</label>
+                  <input type="email" placeholder="you@example.com"
+                    value={formData.email}
+                    onChange={e => handleChange('email', e.target.value)}
+                  />
+                  {errors.email && <div className="form-error">{errors.email}</div>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Phone Number</label>
+                  <input type="tel" placeholder="+91 98765 43210"
+                    value={formData.phone}
+                    onChange={e => handleChange('phone', e.target.value)}
+                  />
+                  {errors.phone && <div className="form-error">{errors.phone}</div>}
+                </div>
+                <div className="form-group">
+                  <label>Service Needed *</label>
+                  <select value={formData.service} onChange={e => handleChange('service', e.target.value)}>
+                    <option value="">Select a service</option>
+                    <option>Brand & Identity</option>
+                    <option>Web Development</option>
+                    <option>Digital Strategy</option>
+                    <option>Motion Design</option>
+                    <option>UX Research</option>
+                    <option>Other</option>
+                  </select>
+                  {errors.service && <div className="form-error">{errors.service}</div>}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Your Message *</label>
+                <textarea placeholder="Tell us about your project — goals, timeline, budget, anything relevant..."
+                  value={formData.message}
+                  onChange={e => handleChange('message', e.target.value)}
+                />
+                {errors.message && <div className="form-error">{errors.message}</div>}
+              </div>
+
+              <button className="btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={handleSubmit}>
+                Send Message →
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+/* ─── APP ─── */
+const App = () => {
+  const { currentPage, isTransitioning } = useContext(AppContext);
+
+  const pages = { home: <HomePage/>, about: <AboutPage/>, contact: <ContactPage/> };
+
+  return (
+    <div className="page-wrapper">
+      <Navbar/>
+      <main className={isTransitioning ? 'page-exit' : 'page-enter'} key={currentPage}>
+        {pages[currentPage]}
+        <Footer/>
+      </main>
+    </div>
+  );
+};
+
+const Root = () => (
+  <AppProvider>
+    <App/>
+  </AppProvider>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
+</script>
+</body>
+</html>
